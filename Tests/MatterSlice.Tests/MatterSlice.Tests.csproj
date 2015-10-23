@@ -63,10 +63,15 @@
     <Compile Include="MatterSlice\SettingsTests.cs" />
     <Compile Include="MatterSlice\GCodePlannerTests.cs" />
     <Compile Include="MatterSlice\SlicerLayerTests.cs" />
+    <Compile Include="MatterSlice\jlewinTests.cs" />
     <Compile Include="MatterSlice\TestUtlities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\agg-sharp\clipper_library\clipper_library.csproj">
+      <Project>{9b062971-a88e-4a3d-b3c9-12b78d15fa66}</Project>
+      <Name>clipper_library</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\MatterSlice.csproj">
       <Project>{c46ca728-dd2f-4dd1-971a-aaa89d9dff95}</Project>
       <Name>MatterSlice</Name>
