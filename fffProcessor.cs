@@ -813,7 +813,7 @@ namespace MatterHackers.MatterSlice
 								bool limitDistance = false;
 								if (island.InsetToolPaths.Count > 0)
 								{
-									QueueClosetsInset(insetsForThisIsland[0], limitDistance, inset0Config, layerIndex, layerGcodePlanner);
+									QueueClosetsInset(insetsForThisIsland[0], limitDistance, inset0Config, layerIndex, layerGcodePlanner, true);
 								}
 
 								// Move to the closest inset 1 and print it
@@ -1005,7 +1005,7 @@ namespace MatterHackers.MatterSlice
 			return polyPointPosition;
 		}
 
-		private bool QueueClosetsInset(Polygons insetsToConsider, bool limitDistance, GCodePathConfig pathConfig, int layerIndex, GCodePlanner gcodeLayer)
+		private bool QueueClosetsInset(Polygons insetsToConsider, bool limitDistance, GCodePathConfig pathConfig, int layerIndex, GCodePlanner gcodeLayer, bool stick = false)
 		{
 			// This is the furthest away we will accept a new starting point
 			long maxDist_um = long.MaxValue;
@@ -1034,6 +1034,21 @@ namespace MatterHackers.MatterSlice
 
 			if (polygonPrintedIndex > -1)
 			{
+				if (stick)
+				{
+					var old = gcodeLayer.CurrentZ;
+					var closestInsetStart = FindBestPoint(insetsToConsider, gcodeLayer.LastPosition);
+					if (closestInsetStart.X != long.MinValue)
+					{
+						gcodeLayer.QueueTravel(closestInsetStart);
+					}
+
+					gcode.SetZ(20);
+					gcodeLayer.QueueExtrusionMove(new IntPoint(gcodeLayer.LastPosition.X, gcodeLayer.LastPosition.Y), pathConfig);
+					gcode.SetZ(old);
+					//gcodeLayer.QueueExtrusionMove(new IntPoint(gcodeLayer.LastPosition.X, gcodeLayer.LastPosition.Y), pathConfig);
+				}
+
 				if (config.MergeOverlappingLines)
 				{
 					QueuePerimeterWithMergOverlaps(insetsToConsider[polygonPrintedIndex], layerIndex, gcodeLayer, pathConfig);
