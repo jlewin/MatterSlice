@@ -297,19 +297,20 @@ namespace MatterHackers.MatterSlice
 			
 			foreach (var region in supportOutlines.Layers)
 			{
-				List<Polygons> separtedIntoIslands = region.AllOutlines.ProcessIntoSeparateIslands();
-
-				for (int islandIndex = 0; islandIndex < separtedIntoIslands.Count; islandIndex++)
+				foreach (Polygons island in region.AllOutlines.ProcessIntoSeparateIslands())
 				{
-					var island = new LayerIsland()
+					// TODO: Ideally this could all be moved into a single statement with the initializer contructing and directly assigning to supportIslands list
+					// currently this is blocked as the caller must initialize the BoundingBox. Consider doing so in the IslandOutline setter instead for improved
+					// data quality and to simplify here
+					var layerIsland = new LayerIsland()
 					{
-						IslandOutline = separtedIntoIslands[islandIndex],
-						
+						IslandOutline = island,
+						PathFinder = new PathFinder(island, config.ExtrusionWidth_um * 3 / 2, useInsideCache: config.AvoidCrossingPerimeters),
 					};
 
-					island.PathFinder = new PathFinder(island.IslandOutline, config.ExtrusionWidth_um * 3 / 2, useInsideCache: config.AvoidCrossingPerimeters);
-					island.BoundingBox.Calculate(island.IslandOutline);
-					supportIslands.Add(island);
+					layerIsland.BoundingBox.Calculate(layerIsland.IslandOutline);
+
+					supportIslands.Add(layerIsland);
 				}
 			}
 
