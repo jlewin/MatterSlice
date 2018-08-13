@@ -117,6 +117,19 @@ namespace MatterHackers.MatterSlice
 				return;
 			}
 
+			// Stuff island data in for NewSupport and used by path optimizer in WriteGCode below
+			if (supportOutlines != null)
+			{
+				foreach (var extruder in slicingData.Extruders)
+				{
+					for (var i = 0; i < extruder.Layers.Count; i++)
+					{
+						var layer = extruder.Layers[i];
+						layer.Islands.Add(supportIslands[i]);
+					}
+				}
+			}
+
 			WriteGCode(slicingData);
 			if (MatterSlice.Canceled)
 			{
@@ -239,6 +252,9 @@ namespace MatterHackers.MatterSlice
 			timeKeeper.Restart();
 		}
 
+		private ExtruderLayers supportOutlines = null;
+		private List<LayerIsland> supportIslands = null;
+
 		private void ProcessSliceData(LayerDataStorage slicingData)
 		{
 			if (config.ContinuousSpiralOuterPerimeter)
@@ -276,6 +292,26 @@ namespace MatterHackers.MatterSlice
 			}
 
 			slicingData.CreateIslandData();
+
+			supportIslands = new List<LayerIsland>();
+			
+			foreach (var region in supportOutlines.Layers)
+			{
+				List<Polygons> separtedIntoIslands = region.AllOutlines.ProcessIntoSeparateIslands();
+
+				for (int islandIndex = 0; islandIndex < separtedIntoIslands.Count; islandIndex++)
+				{
+					var island = new LayerIsland()
+					{
+						IslandOutline = separtedIntoIslands[islandIndex],
+						
+					};
+
+					island.PathFinder = new PathFinder(island.IslandOutline, config.ExtrusionWidth_um * 3 / 2, useInsideCache: config.AvoidCrossingPerimeters);
+					island.BoundingBox.Calculate(island.IslandOutline);
+					supportIslands.Add(island);
+				}
+			}
 
 			int totalLayers = slicingData.Extruders[0].Layers.Count;
 			if (config.outputOnlyFirstLayer)
@@ -530,6 +566,16 @@ namespace MatterHackers.MatterSlice
 
 					if (slicingData.support != null)
 					{
+						bool movedToIsland = false;
+
+						SliceLayer layer = slicingData.Extruders[extruderIndex].Layers[layerIndex];
+
+						if (layerIndex < supportIslands.Count)
+						{
+							MoveToIsland(layerGcodePlanner, layer, supportIslands[layerIndex]);
+							movedToIsland = true;
+						}
+
 						if ((config.SupportExtruder <= 0 && extruderIndex == 0)
 							|| config.SupportExtruder == extruderIndex)
 						{
@@ -547,6 +593,11 @@ namespace MatterHackers.MatterSlice
 								// we move out of the island so we aren't in it.
 								islandCurrentlyInside = null;
 							}
+						}
+
+						if (movedToIsland)
+						{
+							islandCurrentlyInside = null;
 						}
 					}
 				}
@@ -1227,8 +1278,10 @@ namespace MatterHackers.MatterSlice
 
 					if (outputDataForIsland)
 					{
+						// TODO: Why two moveToIsland calls below?
 						if (config.AvoidCrossingPerimeters)
 						{
+							// Here
 							MoveToIsland(layerGcodePlanner, layer, island);
 						}
 						else
@@ -1236,6 +1289,7 @@ namespace MatterHackers.MatterSlice
 							if (config.RetractWhenChangingIslands) layerGcodePlanner.ForceRetract();
 						}
 
+						// And unconditionally here
 						MoveToIsland(layerGcodePlanner, layer, island);
 
 						if (config.NumberOfPerimeters > 0

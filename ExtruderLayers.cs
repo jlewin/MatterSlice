@@ -196,6 +196,7 @@ namespace MatterHackers.MatterSlice
 				Layers.Add(new SliceLayer());
 				Layers[layerIndex].LayerZ = extruderData.layers[layerIndex].Z;
 
+				// TODO: not obvious how this works - why not just call GetCorrectedWinding on PolygonList and have a single statement?
 				Layers[layerIndex].AllOutlines = extruderData.layers[layerIndex].PolygonList;
 
 				Layers[layerIndex].AllOutlines = Layers[layerIndex].AllOutlines.GetCorrectedWinding();
