@@ -26,6 +26,7 @@ using MSClipperLib;
 
 namespace MatterHackers.MatterSlice
 {
+	using System.Linq;
 	using Pathfinding;
 	using QuadTree;
 	using Polygon = List<IntPoint>;
@@ -526,9 +527,11 @@ namespace MatterHackers.MatterSlice
 				for (int extruderIndex = 0; extruderIndex < config.MaxExtruderCount(); extruderIndex++)
 				{
 					int prevExtruder = layerGcodePlanner.GetExtruder();
+
 					bool changingExtruder = layerGcodePlanner.ExtruderWillChange(extruderIndex)
-						&& extruderIndex < slicingData.Extruders.Count
-						&& slicingData.Extruders[extruderIndex].Layers[layerIndex].Islands.Count > 0;
+						&& (extruderIndex < slicingData.Extruders.Count
+							&& slicingData.Extruders[extruderIndex].Layers[layerIndex].Islands.Count > 0)
+							|| (config.GenerateSupport && slicingData.support.SparseSupportOutlines[layerIndex].Count > 0);
 
 					if (changingExtruder)
 					{
